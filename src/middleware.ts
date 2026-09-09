@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose";
 
-const SECRET = new TextEncoder().encode(process.env.AUTH_SECRET || "fde01-dev-secret-change-in-prod");
+const SECRET_STR = process.env.AUTH_SECRET;
+if (!SECRET_STR || SECRET_STR.length < 32) {
+  throw new Error("AUTH_SECRET missing or too short. Refusing to start.");
+}
+const SECRET = new TextEncoder().encode(SECRET_STR);
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

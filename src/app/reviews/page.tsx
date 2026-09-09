@@ -1,9 +1,15 @@
 export const dynamic = "force-dynamic";
 import db from "@/lib/db";
+import { cookies } from "next/headers";
+import { verifySession, SESSION_COOKIE } from "@/lib/auth";
+import RecordEditor from "../record-editor";
 
-export default function ReviewsPage() {
+export default async function ReviewsPage() {
   const rows = db.prepare("SELECT * FROM reviews ORDER BY id").all() as any[];
-  const cls = (s: string) => s === "已确认" ? "s-done" : s === "待确认" ? "s-hold" : "s-wait";
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  const session = token ? await verifySession(token) : null;
+  const isAdmin = session?.role === "admin";
+
   return (
     <>
       <div className="page-title">待审核事项</div>
@@ -19,16 +25,16 @@ export default function ReviewsPage() {
                 <td>{r.item}</td>
                 <td>{r.reviewer}</td>
                 <td className="muted">{r.result_version || "—"}</td>
-                <td className="muted" style={{ maxWidth: 320 }}>{r.question || "—"}</td>
-                <td className="muted">{r.opinion || "待记录"}</td>
-                <td><span className={`badge ${cls(r.status)}`}>{r.status}</span></td>
+                <td className="muted" style={{ maxWidth: 280 }}>{r.question || "—"}</td>
+                <td style={{ maxWidth: 240 }}>{isAdmin ? <RecordEditor table="reviews" id={r.id} field="opinion" value={r.opinion} textarea /> : (r.opinion || "待记录")}</td>
+                <td>{isAdmin ? <RecordEditor table="reviews" id={r.id} field="status" value={r.status} options={["待确认", "已确认"]} /> : r.status}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
       <div className="sim-note">
-        审核意见先记录。在具备身份核验、版本及成果哈希绑定前，本工作台不宣称支持正式工程签审。
+        审核意见先记录（管理员可编辑）。在具备身份核验、版本及成果哈希绑定前，本工作台不宣称支持正式工程签审。
       </div>
     </>
   );

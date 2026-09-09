@@ -3,20 +3,13 @@ import "./globals.css";
 import { cookies } from "next/headers";
 import { verifySession, SESSION_COOKIE } from "@/lib/auth";
 import LogoutButton from "./logout-button";
+import Nav from "./nav";
 
 export const metadata: Metadata = {
   title: "AiToMoney FDE 工程工作台",
   description: "FDE 项目范围、资料缺口、任务进度、工程成果与待审核事项",
   robots: "noindex, nofollow",
 };
-
-const NAV = [
-  ["/", "项目总览"],
-  ["/materials", "需求与资料"],
-  ["/tasks", "任务中心"],
-  ["/results", "成果与对照"],
-  ["/reviews", "待审核事项"],
-];
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
@@ -26,16 +19,15 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <header className="header">
           <div className="header-inner">
-            <div className="brand"><img src="/logo.png" alt="AiToMoney" style={{ height: 26, width: "auto" }} /> <small>FDE 工程工作台</small></div>
+            <div className="brand">
+              <img src="/logo.png" alt="AiToMoney" style={{ height: 26, width: "auto" }} />
+              <small>FDE 工程工作台</small>
+            </div>
             {session && (
               <>
-                <nav className="nav">
-                  {NAV.map(([href, label]) => (
-                    <a key={href} href={href}>{label}</a>
-                  ))}
-                </nav>
+                <Nav />
                 <div className="spacer" />
-                <span className="muted">{session.username}</span>
+                <span className="muted">{session.username}{session.role === "admin" ? "（管理员）" : "（只读）"}</span>
                 <LogoutButton />
               </>
             )}
