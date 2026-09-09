@@ -26,7 +26,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body>
         <header className="header">
           <div className="header-inner">
-            <div className="brand">AiToMoney <small>FDE 工程工作台</small></div>
+            <div className="brand"><img src="/logo.png" alt="AiToMoney" style={{ height: 26, width: "auto" }} /> <small>FDE 工程工作台</small></div>
             {session && (
               <>
                 <nav className="nav">
