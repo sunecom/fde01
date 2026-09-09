@@ -55,7 +55,7 @@ insRes.run("FDE-SIM-01", "C1（人工修正协同）", "—", "未接入：依�
 insRes.run("FDE-WEB-01", "网站首版", "V0.1.0", "5 页面 + 登录 + HTTPS，演示数据；已提交待复验", "已提交", "https://github.com/sunecom/fde01 (commit b476d10)", 0);
 
 const insRev = db.prepare("INSERT INTO reviews (item, reviewer, result_version, question, opinion, status, is_demo) VALUES (?,?,?,?,?,?,?)");
-insRev.run("网站首版验收", "柯大侠/项目总控", "FDE-WEB-01 V0.1.0", "五页面/登录/HTTPS/演示数据隔离是否满足第一阶段验收（修订意见 WEB-R01—08）", "待记录", "待确认", 0);
+insRev.run("网站首版验收", "柯大侠/项目总控", "FDE-WEB-01 V0.2.2", "网站 V0.2.2（f92ea1b）整改与验收证据（含隔离安装/审计回滚/备份恢复/重启保持实测）是否满足第一阶段验收", "待记录", "待确认", 0);
 insRev.run("AspenSA 演示任务接入范围", "AtmEdge 产品主线", "协议 0.1.0 草案", "第二阶段联调任务卡边界与无副作用测试集", "待记录", "待确认", 1);
 
 db.prepare("INSERT OR REPLACE INTO meta (k,v) VALUES (?,?)").run("seeded", "1");
