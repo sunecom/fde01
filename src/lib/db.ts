@@ -9,6 +9,7 @@ const MIGRATIONS: Array<[string, string]> = [
   ["materials", "ALTER TABLE materials ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 1"],
   ["tasks", "ALTER TABLE tasks ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 1"],
   ["results", "ALTER TABLE results ADD COLUMN source_ref TEXT DEFAULT ''"],
+  ["results", "ALTER TABLE results ADD COLUMN category TEXT DEFAULT ''"],
   ["results", "ALTER TABLE results ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 1"],
   ["reviews", "ALTER TABLE reviews ADD COLUMN is_demo INTEGER NOT NULL DEFAULT 1"],
 ];

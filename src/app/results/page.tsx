@@ -21,13 +21,14 @@ export default async function ResultsPage({ searchParams }: { searchParams: Prom
       <div className="card">
         <table>
           <thead>
-            <tr><th>任务</th><th>成果类别</th><th>版本</th><th>说明</th><th>来源/证据</th><th>状态</th></tr>
+            <tr><th>任务</th><th>成果类别</th><th>分类</th><th>版本</th><th>说明</th><th>来源/证据</th><th>状态</th></tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <tr key={r.id}>
                 <td>{r.task_code}</td>
                 <td>{r.kind}</td>
+                <td><span className={`badge ${r.category === "真实交付成果" ? "s-real" : r.category === "内部演示成果" ? "s-run" : "s-na"}`}>{r.category || "未分类"}</span></td>
                 <td className="muted">{r.version || "—"}</td>
                 <td className="muted" style={{ maxWidth: 320 }}>{r.summary || "—"}</td>
                 <td className="muted" style={{ maxWidth: 240 }}>{r.source_ref || "待核实"}</td>
