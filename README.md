@@ -73,14 +73,20 @@ systemctl start fde01
 
 ## 回滚
 
+注意：**不要回退到 V0.1（b476d10 及之前）**——该版本存在已知安全问题（默认密钥回退、root 运行、固定口令、无限速）。回滚请在 V0.2+（5f281d4）之后的提交中选择；跨版本回滚前先核对数据库 schema 兼容性（应用启动时会自动执行幂等迁移，见下）。
+
 ```bash
 cd /opt/fde01
-git log --oneline                 # 找回滚点
+git log --oneline                 # 找回滚点（V0.2+）
 git checkout <commit>
 unset http_proxy https_proxy HTTP_PROXY HTTPS_PROXY
 npm ci && npm run build
 systemctl restart fde01
 ```
+
+## 数据库迁移
+
+应用启动时自动执行幂等迁移（src/lib/db.ts）：对已存在的老库按需 `ALTER TABLE` 补列（is_demo / source_ref / audit_log），新库由 scripts/seed.mjs 一次建全。迁移不删数据、可重复执行。
 
 ## 数据与安全说明
 

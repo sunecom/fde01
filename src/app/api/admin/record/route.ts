@@ -4,11 +4,25 @@ import { verifySession, SESSION_COOKIE } from "@/lib/auth";
 
 // 通用管理写接口：PATCH /api/admin/record
 // body: { table: "materials"|"tasks"|"reviews", id: number, patch: { field: value, ... }
-// 仅 admin 角色；校验 Origin；只允许白名单字段；写 audit_log
-const TABLES: Record<string, { fields: string[]; label: string }> = {
-  materials: { fields: ["provided", "version", "owner", "gap_note"], label: "资料" },
-  tasks: { fields: ["status", "exec_log", "fail_reason", "next_step", "owner"], label: "任务" },
-  reviews: { fields: ["opinion", "status"], label: "审核" },
+// 仅 admin 角色；校验 Origin；白名单字段 + 枚举校验；修改与审计同一事务
+const TASK_STATUSES = ["待资料", "待确认", "排队", "运行", "待审核", "已提交", "失败", "完成"];
+const REVIEW_STATUSES = ["待确认", "已确认"];
+const TABLES: Record<string, { fields: string[]; enums: Record<string, string[]>; label: string }> = {
+  materials: {
+    fields: ["provided", "version", "owner", "gap_note"],
+    enums: { provided: ["0", "1"] },
+    label: "资料",
+  },
+  tasks: {
+    fields: ["status", "exec_log", "fail_reason", "next_step", "owner"],
+    enums: { status: TASK_STATUSES },
+    label: "任务",
+  },
+  reviews: {
+    fields: ["opinion", "status"],
+    enums: { status: REVIEW_STATUSES },
+    label: "审核",
+  },
 };
 
 export async function PATCH(req: NextRequest) {
@@ -33,13 +47,15 @@ export async function PATCH(req: NextRequest) {
   const id = Math.floor(body.id);
   if (id < 1) return NextResponse.json({ error: "id 非法" }, { status: 400 });
 
-  // 只允许白名单字段 + 类型校验
+  // 只允许白名单字段 + 类型/枚举校验
   const patch: Record<string, string | number> = {};
   for (const [k, v] of Object.entries(body.patch as Record<string, unknown>)) {
     if (!t.fields.includes(k)) return NextResponse.json({ error: `字段不允许: ${k}` }, { status: 400 });
-    if (k === "provided") {
-      if (v !== 0 && v !== 1) return NextResponse.json({ error: "provided 只能是 0/1" }, { status: 400 });
-      patch[k] = v;
+    const enums = t.enums[k];
+    if (enums) {
+      if (typeof v !== "string" && typeof v !== "number") return NextResponse.json({ error: `${k} 类型错误` }, { status: 400 });
+      if (!enums.includes(String(v))) return NextResponse.json({ error: `${k} 必须是: ${enums.join("/")}` }, { status: 400 });
+      patch[k] = k === "provided" ? Number(v) : String(v);
     } else {
       if (typeof v !== "string" || v.length > 2000) return NextResponse.json({ error: `${k} 必须是 ≤2000 字的文本` }, { status: 400 });
       patch[k] = v;
@@ -51,14 +67,22 @@ export async function PATCH(req: NextRequest) {
   const before = db.prepare(`SELECT * FROM ${body.table} WHERE id=?`).get(id) as any;
   if (!before) return NextResponse.json({ error: "记录不存在" }, { status: 404 });
 
-  const sets = keys.map((k) => `${k}=?`).join(", ");
-  db.prepare(`UPDATE ${body.table} SET ${sets} WHERE id=?`).run(...keys.map((k) => patch[k]), id);
-
-  // 审计：记录修改前后值、操作者、时间
   const beforeVals = JSON.stringify(Object.fromEntries(keys.map((k) => [k, before[k]])));
   const afterVals = JSON.stringify(patch);
-  db.prepare("INSERT INTO audit_log (operator, action, target, before_value, after_value) VALUES (?,?,?,?,?)")
-    .run(session.username, `update`, `${body.table}#${id}`, beforeVals, afterVals);
+
+  // 修改与审计同一事务：任一失败则整体回滚
+  db.exec("BEGIN");
+  try {
+    const sets = keys.map((k) => `${k}=?`).join(", ");
+    db.prepare(`UPDATE ${body.table} SET ${sets} WHERE id=?`).run(...keys.map((k) => patch[k]), id);
+    db.prepare("INSERT INTO audit_log (operator, action, target, before_value, after_value) VALUES (?,?,?,?,?)")
+      .run(session.username, "update", `${body.table}#${id}`, beforeVals, afterVals);
+    db.exec("COMMIT");
+  } catch (e) {
+    db.exec("ROLLBACK");
+    console.error(`[admin] transaction failed: ${body.table}#${id}`);
+    return NextResponse.json({ error: "写入失败，已回滚" }, { status: 500 });
+  }
 
   return NextResponse.json({ ok: true });
 }
